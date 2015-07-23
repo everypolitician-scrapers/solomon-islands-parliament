@@ -3,8 +3,7 @@
 
 # TODO:
 #  scrape the list of 'by party' http://www.parliament.gov.sb/index.php?q=node/147
-#  Historic lists don't have links for people, so the catch by 'a' doesn't work
-#  Finding too many elements
+#  Historic lists are in a different format
 
 require 'scraperwiki'
 require 'nokogiri'
@@ -19,27 +18,7 @@ require 'csv'
 require 'open-uri/cached'
 OpenURI::Cache.cache_path = '.cache'
 
-@BASE = 'http://www.parliament.gov.sb/'
-
-@terms = [
-  {
-    id: 10,
-    name: '10th Parliament',
-    start_date: '2014',
-    source: 'http://www.parliament.gov.sb/index.php?q=node/833',
-  },
-  {
-    id: 9,
-    name: '9th Parliament',
-    start_date: '2010-09-08',
-    end_date: '2014-09-08',
-    source: 'http://www.parliament.gov.sb/index.php?q=node/502',
-  }
-]
-
 def noko_for(url)
-  # url.prepend @BASE unless url.start_with? 'http:'
-  # warn "Getting #{url}"
   Nokogiri::HTML(open(url).read) 
 end
 
@@ -48,37 +27,56 @@ def datefrom(date)
 end
 
 def scrape_term(term)
-  noko = noko_for(term[:source])
+  url = term[:source]
+  noko = noko_for(url)
   noko.css('div.entrytext').xpath('.//tr[td]').each do |row|
-    link = URI.join(term[:source], row.css('a/@href').text).to_s
-    scrape_mp(link, { term: term[:id] })
+    tds = row.css('td')
+    data = { 
+      name: tds[1].text.strip,
+      constituency: tds[2].text[/MP for (.*)/, 1].strip,
+      term: term[:id],
+      party: "Unknown",
+      source: term[:source],
+    }
+    mpsource = tds[1].css('a/@href').text
+    unless mpsource.empty?
+      data.merge! scrape_mp(URI.join(url, URI.escape(mpsource)).to_s)
+      binding.pry
+    else
+      warn "No ID for #{data[:name]}"
+    end
+    puts data
   end
 end
 
-def scrape_mp(url, data)
+def scrape_mp(url)
   noko = noko_for(url)
   box = noko.css('td.content')
 
-  data.merge!({
+  data = { 
     id: url[/(\d+)$/, 1],
-    name: box.css('div.heading').text,
-    constituency: box.xpath('.//strong[contains(.,"Constituency")] | .//b[contains(.,"Constituency")]/following::text()[1]').text.strip,
     phone: box.text[/Phone: (.*?)$/, 1],
-    # TODO also date of birth / DOB
-    birth_date: box.text[/Year of birth: (\d+)/, 1],
+    image: noko.css('.entrytext img/@src').text,
     source: url,
-  })
-  binding.pry if data[:id] == '856'
-  data[:image] &&= URI.join(url, data[:image]).to_s
-  data[:birth_date] = box.text[/DOB: (\d+)/, 1] if data[:birth_date].empty?
-
-  puts data
-  # ScraperWiki.save_sqlite([:id, :term], data)
-
+  }
+  data[:image] = URI.join(url, URI.escape(data[:image])).to_s unless data[:image].to_s.empty?
+  data
 end
 
-# ScraperWiki.save_sqlite([:id], terms, 'terms')
+@BASE = 'http://www.parliament.gov.sb/'
+
+@terms = [
+  {
+    id: '10',
+    name: '10th Parliament',
+    start_date: '2014',
+    source: 'http://www.parliament.gov.sb/index.php?q=node/833',
+  }
+]
+
+ScraperWiki.save_sqlite([:id], terms, 'terms')
 @terms.each do |term|
+  puts term
   scrape_term(term)
 end
 
