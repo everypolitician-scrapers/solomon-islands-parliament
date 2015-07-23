@@ -9,14 +9,11 @@ require 'scraperwiki'
 require 'nokogiri'
 require 'date'
 require 'open-uri'
-require 'date'
-require 'csv'
 
-require 'colorize'
-require 'pry'
-require 'csv'
-require 'open-uri/cached'
-OpenURI::Cache.cache_path = '.cache'
+# require 'colorize'
+# require 'pry'
+# require 'open-uri/cached'
+# OpenURI::Cache.cache_path = '.cache'
 
 def noko_for(url)
   Nokogiri::HTML(open(url).read) 
