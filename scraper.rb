@@ -39,12 +39,7 @@ def scrape_term(term)
       source: term[:source],
     }
     mpsource = tds[1].css('a/@href').text
-    unless mpsource.empty?
-      data.merge! scrape_mp(URI.join(url, URI.escape(mpsource)).to_s)
-      binding.pry
-    else
-      warn "No ID for #{data[:name]}"
-    end
+    data.merge! scrape_mp(URI.join(url, URI.escape(mpsource)).to_s) unless mpsource.empty?
     puts data
   end
 end
@@ -74,7 +69,7 @@ end
   }
 ]
 
-ScraperWiki.save_sqlite([:id], terms, 'terms')
+ScraperWiki.save_sqlite([:id], @terms, 'terms')
 @terms.each do |term|
   puts term
   scrape_term(term)
