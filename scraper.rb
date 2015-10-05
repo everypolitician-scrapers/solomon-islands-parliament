@@ -15,6 +15,12 @@ require 'scraperwiki'
 require 'open-uri/cached'
 OpenURI::Cache.cache_path = '.cache'
 
+class String
+  def tidy
+    self.gsub(/[[:space:]]+/, ' ').strip
+  end
+end
+
 def noko_for(url)
   Nokogiri::HTML(open(url).read) 
 end
@@ -34,7 +40,6 @@ def scrape_term(term)
       sort_name: sort_name,
       constituency: tds[2].text[/MP for (.*)/, 1].strip,
       term: term[:id],
-      party: "Unknown",
       source: term[:source],
     }
     mpsource = tds[1].css('a/@href').text
@@ -49,6 +54,7 @@ def scrape_mp(url)
 
   data = { 
     id: url[/(\d+)$/, 1],
+    party: noko.xpath('.//p[strong[contains(.,"Affiliation")]]/following-sibling::ul[1]').text.tidy,
     phone: box.text[/Phone: (.*?)$/, 1],
     image: noko.css('.entrytext img/@src').text,
     source: url,
