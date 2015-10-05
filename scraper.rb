@@ -39,7 +39,6 @@ def scrape_term(term)
     }
     mpsource = tds[1].css('a/@href').text
     data.merge! scrape_mp(URI.join(url, URI.escape(mpsource)).to_s) unless mpsource.empty?
-    puts data[:name]
     ScraperWiki.save_sqlite([:name, :term], data)
   end
 end
