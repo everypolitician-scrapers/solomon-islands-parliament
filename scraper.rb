@@ -5,15 +5,15 @@
 #  scrape the list of 'by party' http://www.parliament.gov.sb/index.php?q=node/147
 #  Historic lists are in a different format
 
-require 'scraperwiki'
-require 'nokogiri'
+require 'colorize'
 require 'date'
+require 'nokogiri'
 require 'open-uri'
+require 'pry'
+require 'scraperwiki'
 
-# require 'colorize'
-# require 'pry'
-# require 'open-uri/cached'
-# OpenURI::Cache.cache_path = '.cache'
+require 'open-uri/cached'
+OpenURI::Cache.cache_path = '.cache'
 
 def noko_for(url)
   Nokogiri::HTML(open(url).read) 
@@ -28,8 +28,10 @@ def scrape_term(term)
   noko = noko_for(url)
   noko.css('div.entrytext').xpath('.//tr[td]').each do |row|
     tds = row.css('td')
+    sort_name = tds[1].text.strip
     data = { 
-      name: tds[1].text.strip,
+      name: sort_name.split(', ', 2).reverse.join(" ").sub(/^Hon\.? /,''),
+      sort_name: sort_name,
       constituency: tds[2].text[/MP for (.*)/, 1].strip,
       term: term[:id],
       party: "Unknown",
@@ -37,7 +39,7 @@ def scrape_term(term)
     }
     mpsource = tds[1].css('a/@href').text
     data.merge! scrape_mp(URI.join(url, URI.escape(mpsource)).to_s) unless mpsource.empty?
-    puts data
+    puts data[:name]
     ScraperWiki.save_sqlite([:name, :term], data)
   end
 end
@@ -55,8 +57,6 @@ def scrape_mp(url)
   data[:image] = URI.join(url, URI.escape(data[:image])).to_s unless data[:image].to_s.empty?
   data
 end
-
-@BASE = 'http://www.parliament.gov.sb/'
 
 @terms = [
   {
