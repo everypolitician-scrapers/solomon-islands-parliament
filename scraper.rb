@@ -5,7 +5,6 @@
 #  scrape the list of 'by party' http://www.parliament.gov.sb/index.php?q=node/147
 #  Historic lists are in a different format
 
-require 'colorize'
 require 'date'
 require 'nokogiri'
 require 'open-uri'
