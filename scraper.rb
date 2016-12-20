@@ -71,7 +71,6 @@ end
   }
 ]
 
-ScraperWiki.save_sqlite([:id], @terms, 'terms')
 @terms.each do |term|
   puts term
   scrape_term(term)
